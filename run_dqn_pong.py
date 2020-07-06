@@ -1,4 +1,4 @@
-import math, random
+import math, random, os, time
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,17 +14,26 @@ from model import QLearner
 from loss import compute_td_loss
 from replay_buffer import ReplayBuffer
 
+def create_save_folder(base_path):
+    timeasname = time.asctime(time.localtime(time.time())).replace(" ", "-").replace(":", "-")
+    results_path = base_path + "outs/{}/".format(timeasname)
+    models_path = results_path +  "models/"
+    os.makedirs(models_path, exist_ok=True)
+
+def init_env(env_id="PongNoFrameskip-v4")
+    env = make_atari(env_id)
+    env = wrap_deepmind(env)
+    env = wrap_pytorch(env)
+    return env
+
+
+# main
+
 USE_CUDA = torch.cuda.is_available()
+BASE_PATH = os.getcwd()
 
-timeasname = time.asctime(time.localtime(time.time())).replace(" ", "-").replace(":", "-")
-results_path = base_path + "outs/{}/".format(timeasname)
-models_path = results_path +  "models/"
-os.makedirs(models_path, exist_ok=True)
-
-env_id = "PongNoFrameskip-v4"
-env = make_atari(env_id)
-env = wrap_deepmind(env)
-env = wrap_pytorch(env)
+create_save_folder(BASE_PATH)
+env = init_env()
 
 num_frames = 2500000
 batch_size = 64
@@ -53,8 +62,6 @@ if USE_CUDA:
 
 
 
-
-    
 
 env_id = "PongNoFrameskip-v4"
 env = make_atari(env_id)
