@@ -108,10 +108,12 @@ for frame_idx in range(1, frame_idx_start + num_frames + 1):
         if episode_count % opt.target_update == 0:
             target_net.load_state_dict(policy_net.state_dict())
         state = env.reset()
+
         all_rewards.append(episode_reward)
         episode_count += 1
         print("episodes done: ", episode_count, "episode reward: ", episode_reward)
         episode_reward = 0
+
         if len(replay_buffer) > replay_initial:
             lossmean = np.mean(losses)
             print('#Frame: %d, mean loss: %f' % (frame_idx, lossmean))
@@ -129,7 +131,7 @@ for frame_idx in range(1, frame_idx_start + num_frames + 1):
         # scheduler.step(np.mean(losses))
 
     if frame_idx % 10000 == 0 and len(replay_buffer) <= replay_initial:
-        print('#Frame: %d, preparing replay buffer' % frame_idx)
+        print('Frame: %d, preparing replay buffer' % frame_idx)
 
     if frame_idx % 10000 == 0 and len(replay_buffer) > replay_initial:
         print("Last-10 average reward:", np.mean(all_rewards[-10:]))
