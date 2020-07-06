@@ -43,20 +43,21 @@ class Options:
     def __init__():
         self.cuda = torch.cuda.is_available()
         self.base_path = os.getcwd()
-        self.num_episodes = 1000
+        self.num_frames = 1000000 # probably need more
         self.batch_size = 64
+        self.lr = 0.00001
         self.gamma = 0.99
         self.replay_initial = 10000
         self.epsilon_start = 1.0
         self.epsilon_final = 0.01
         self.epsilon_decay = 30000
         self.target_update = 5
-        self.frame_idx_start = None
         self.episode_reward_print_interval = 1
         self.avg_reward_print_interval = 10
         self.model_save_interval = 5000
         self.model_save_init = 500000
-
+        self.frame_idx_start = None
+        self.model_path = None
 
 
 # main
@@ -77,7 +78,7 @@ if opt.cuda:
     target_net = target_net.cuda()
     mse = mse.cuda()
 
-optimizer = optim.Adam(policy_net.parameters(), lr=0.00001)
+optimizer = optim.Adam(policy_net.parameters(), lr=opt.lr)
 
 epsilon_start = opt.epsilon_start
 epsilon_final = opt.epsilon_final
@@ -93,10 +94,12 @@ losses = []
 episode_rewards = []
 episode_mean_loss = []
 
-state = env.reset()
-
-if frame_idx_start is None:
+if opt.frame_idx_start is None:
     frame_idx_start = 0
+else:
+    policy_net, target_net = load_existing_model(opt.model_path)
+
+state = env.reset()
 
 for frame_idx in range(1, frame_idx_start + num_frames + 1):
 
