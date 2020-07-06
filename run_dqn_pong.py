@@ -52,6 +52,11 @@ class Options:
         self.epsilon_decay = 30000
         self.target_update = 5
         self.frame_idx_start = None
+        self.episode_reward_print_interval = 1
+        self.avg_reward_print_interval = 10
+        self.model_save_interval = 5000
+        self.model_save_init = 500000
+
 
 
 # main
@@ -85,8 +90,8 @@ episode_reward = 0
 episode_count = 0
 
 losses = []
-all_rewards = []
-losses_mean = []
+episode_rewards = []
+episode_mean_loss = []
 
 state = env.reset()
 
@@ -109,15 +114,19 @@ for frame_idx in range(1, frame_idx_start + num_frames + 1):
             target_net.load_state_dict(policy_net.state_dict())
         state = env.reset()
 
-        all_rewards.append(episode_reward)
+        episode_rewards.append(episode_reward)
         episode_count += 1
-        print("episodes done: ", episode_count, "episode reward: ", episode_reward)
+        if episode_count % opt.episode_reward_print_interval:
+            print("episodes done: ", episode_count, 
+                            "episode reward: ", episode_reward)
+
         episode_reward = 0
 
         if len(replay_buffer) > replay_initial:
-            lossmean = np.mean(losses)
-            print('#Frame: %d, mean loss: %f' % (frame_idx, lossmean))
-            losses_mean.append(lossmean)
+            mean_loss = np.mean(losses)
+            if episode_count % opt.episode_reward_print_interval:
+                print('# Frame: %d, mean loss: %f' % (frame_idx, lossmean))
+            episode_mean_loss.append(mean_loss)
             losses = []
             print('-'*20)
 
@@ -133,9 +142,15 @@ for frame_idx in range(1, frame_idx_start + num_frames + 1):
     if frame_idx % 10000 == 0 and len(replay_buffer) <= replay_initial:
         print('Frame: %d, preparing replay buffer' % frame_idx)
 
-    if frame_idx % 10000 == 0 and len(replay_buffer) > replay_initial:
-        print("Last-10 average reward:", np.mean(all_rewards[-10:]))
+    # if frame_idx % 10000 == 0 and len(replay_buffer) > replay_initial:
+
+    if episode_count % opt.avg_reward_print_interval and\
+                                 len(replay_buffer) > replay_initial:
+        print("Last-10 episode average reward:", np.mean(episode_rewards[-10:]))
     
-    if frame_idx > 500000 and frame_idx % 5000 == 0 and len(replay_buffer) > replay_initial:
-        print("saving model")
-        torch.save(policy_net.state_dict(), models_path + "/model_" + "%d.pth" % (frame_idx))
+
+    if frame_idx > opt.model_save_init and frame_idx % opt.model_save_interval\
+                                 == 0 and len(replay_buffer) > replay_initial:
+        print("saving model at frame#: ", frame_idx)
+        torch.save(policy_net.state_dict(), models_path +\
+                                         "/model_" + "%d.pth" % (frame_idx))
