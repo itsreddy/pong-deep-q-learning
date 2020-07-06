@@ -51,6 +51,7 @@ class Options:
         self.epsilon_final = 0.01
         self.epsilon_decay = 30000
         self.target_update = 5
+        self.frame_idx_start = None
 
 
 # main
@@ -89,7 +90,10 @@ losses_mean = []
 
 state = env.reset()
 
-for frame_idx in range(2090000+1, 2090000+num_frames + 1):
+if frame_idx_start is None:
+    frame_idx_start = 0
+
+for frame_idx in range(1, frame_idx_start + num_frames + 1):
 
     epsilon = epsilon_by_frame(frame_idx)
     action = target_net.act(state, epsilon)
@@ -101,12 +105,12 @@ for frame_idx in range(2090000+1, 2090000+num_frames + 1):
     episode_reward += reward
     
     if done:
-        if EPISODE_COUNT % 5 == 0:
+        if episode_count % opt.target_update == 0:
             target_net.load_state_dict(policy_net.state_dict())
         state = env.reset()
         all_rewards.append(episode_reward)
-        EPISODE_COUNT += 1
-        print("episodes done: ", EPISODE_COUNT, "episode reward: ", episode_reward)
+        episode_count += 1
+        print("episodes done: ", episode_count, "episode reward: ", episode_reward)
         episode_reward = 0
         if len(replay_buffer) > replay_initial:
             lossmean = np.mean(losses)
@@ -128,7 +132,7 @@ for frame_idx in range(2090000+1, 2090000+num_frames + 1):
         print('#Frame: %d, preparing replay buffer' % frame_idx)
 
     if frame_idx % 10000 == 0 and len(replay_buffer) > replay_initial:
-        print("Last-10 average reward:", np.mean(all_rewards[-10:]), " lr: ", optimizer.param_groups[0]['lr'])
+        print("Last-10 average reward:", np.mean(all_rewards[-10:]))
     
     if frame_idx > 500000 and frame_idx % 5000 == 0 and len(replay_buffer) > replay_initial:
         print("saving model")
