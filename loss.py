@@ -10,6 +10,7 @@ def compute_td_loss(policy_net, target_net, batch_size, gamma, loss_fn,\
     Tensor = torch.cuda.FloatTensor if USE_CUDA else torch.FloatTensor
     Variable = lambda *args, **kwargs: autograd.Variable(*args, \
         **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
+        
     state = Variable(Tensor(np.float32(state)), requires_grad=True)
     next_state = Variable(Tensor(np.float32(next_state)), requires_grad=True)
     action = Variable(torch.LongTensor(np.float32(action)))

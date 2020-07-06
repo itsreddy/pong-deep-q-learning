@@ -1,5 +1,3 @@
-from Wrapper.layers import *
-from Wrapper.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 import math, random
 import gym
 import numpy as np
@@ -9,9 +7,54 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.autograd as autograd 
 import torch.nn.functional as F
-from dqn import QLearner, compute_td_loss, ReplayBuffer
+
+from Wrapper.layers import *
+from Wrapper.wrappers import make_atari, wrap_deepmind, wrap_pytorch
+from model import QLearner
+from loss import compute_td_loss
+from replay_buffer import ReplayBuffer
 
 USE_CUDA = torch.cuda.is_available()
+
+timeasname = time.asctime(time.localtime(time.time())).replace(" ", "-").replace(":", "-")
+results_path = base_path + "outs/{}/".format(timeasname)
+models_path = results_path +  "models/"
+os.makedirs(models_path, exist_ok=True)
+
+env_id = "PongNoFrameskip-v4"
+env = make_atari(env_id)
+env = wrap_deepmind(env)
+env = wrap_pytorch(env)
+
+num_frames = 2500000
+batch_size = 64
+gamma = 0.99
+    
+replay_initial = 10000
+replay_buffer = ReplayBuffer(100000)
+
+policy_net = QLearner(env, num_frames, batch_size, gamma, replay_buffer)
+target_net = QLearner(env, num_frames, batch_size, gamma, replay_buffer)
+target_net.load_state_dict(policy_net.state_dict())
+target_net.eval()
+
+# scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=100)
+
+mse = torch.nn.MSELoss()
+
+if USE_CUDA:
+    policy_net = policy_net.cuda()
+    mse = mse.cuda()
+    target_net = target_net.cuda()
+
+
+
+
+
+
+
+
+    
 
 env_id = "PongNoFrameskip-v4"
 env = make_atari(env_id)
