@@ -26,59 +26,68 @@ def init_env(env_id="PongNoFrameskip-v4")
     env = wrap_pytorch(env)
     return env
 
+def init_model(env):
+    policy_net = QLearner(env)
+    target_net = QLearner(env)
+    target_net.load_state_dict(policy_net.state_dict())
+    target_net.eval()
+    return policy_net, target_net
+
 def load_existing_model(model_path, policy_net, target_net):
     policy_net.load_state_dict(torch.load(model_path))
     target_net.load_state_dict(policy_net.state_dict())
     return policy_net, target_net
 
 
+class Options:
+    def __init__():
+        self.cuda = torch.cuda.is_available()
+        self.base_path = os.getcwd()
+        self.num_episodes = 1000
+        self.batch_size = 64
+        self.gamma = 0.99
+        self.replay_initial = 10000
+        self.epsilon_start = 1.0
+        self.epsilon_final = 0.01
+        self.epsilon_decay = 30000
+        self.target_update = 5
+
+
 # main
 
-USE_CUDA = torch.cuda.is_available()
-base_path = os.getcwd()
+opt = Options()
 
-create_save_folder(base_path)
+create_save_folder(opt.base_path)
 env = init_env()
-
-num_frames = 2500000
-batch_size = 64
-gamma = 0.99
-    
-replay_initial = 10000
 replay_buffer = ReplayBuffer(100000)
-
-policy_net = QLearner(env, num_frames, batch_size, gamma, replay_buffer)
-target_net = QLearner(env, num_frames, batch_size, gamma, replay_buffer)
-target_net.load_state_dict(policy_net.state_dict())
-target_net.eval()
 
 # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=100)
 
+policy_net, target_net = init_model(env)
 mse = torch.nn.MSELoss()
 
-if USE_CUDA:
+if opt.cuda:
     policy_net = policy_net.cuda()
     target_net = target_net.cuda()
     mse = mse.cuda()
 
 optimizer = optim.Adam(policy_net.parameters(), lr=0.00001)
 
-epsilon_start = 1.0
-epsilon_final = 0.01
-epsilon_decay = 30000
+epsilon_start = opt.epsilon_start
+epsilon_final = opt.epsilon_final
+epsilon_decay = opt.epsilon_decay
 epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start \
                 - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
 
 
+episode_reward = 0
+episode_count = 0
+
 losses = []
 all_rewards = []
-episode_reward = 0
-
-TARGET_UPDATE = 10
-EPISODE_COUNT = 0
+losses_mean = []
 
 state = env.reset()
-losses_mean = []
 
 for frame_idx in range(2090000+1, 2090000+num_frames + 1):
 
@@ -124,4 +133,3 @@ for frame_idx in range(2090000+1, 2090000+num_frames + 1):
     if frame_idx > 500000 and frame_idx % 5000 == 0 and len(replay_buffer) > replay_initial:
         print("saving model")
         torch.save(policy_net.state_dict(), models_path + "/model_" + "%d.pth" % (frame_idx))
-

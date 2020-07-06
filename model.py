@@ -10,13 +10,9 @@ Variable = lambda *args, **kwargs: autograd.Variable(*args, \
     **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
 
 class QLearner(nn.Module):
-    def __init__(self, env, num_frames, batch_size, gamma, replay_buffer):
+    def __init__(self, env):
         super(QLearner, self).__init__()
 
-        self.batch_size = batch_size
-        self.gamma = gamma
-        self.num_frames = num_frames
-        self.replay_buffer = replay_buffer
         self.env = env
         self.input_shape = self.env.observation_space.shape
         self.num_actions = self.env.action_space.n
